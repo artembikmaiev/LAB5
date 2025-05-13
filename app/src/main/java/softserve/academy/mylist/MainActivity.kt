@@ -77,6 +77,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 
+// Головна активність додатку
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,15 +94,15 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// Model View ViewModel
-
+// Модель даних для елемента списку покупок
 @Entity(tableName = "shopping_items")
 data class ShoppingItem(
     val name: String,
     val isBought: Boolean = false,
     @PrimaryKey(autoGenerate = true) val id: Int = 0
 )
-// ORM
+
+// Data Access Object для роботи з базою даних
 @Dao
 interface ShoppingDao {
     @Query("SELECT * FROM shopping_items ORDER BY id DESC")
@@ -117,6 +118,7 @@ interface ShoppingDao {
     fun deleteItem(item: ShoppingItem)
 }
 
+// База даних Room
 @Database(entities = [ShoppingItem::class], version = 1)
 abstract class ShoppingDatabase : RoomDatabase() {
     abstract fun shoppingDao(): ShoppingDao
@@ -139,7 +141,7 @@ abstract class ShoppingDatabase : RoomDatabase() {
     }
 }
 
-
+// ViewModel для керування даними та бізнес-логікою
 class ShoppingListViewModel(application: Application) : AndroidViewModel(application) {
     private val dao: ShoppingDao = ShoppingDatabase.getInstance(application).shoppingDao()
     private val _shoppingList = mutableStateListOf<ShoppingItem>()
@@ -149,6 +151,7 @@ class ShoppingListViewModel(application: Application) : AndroidViewModel(applica
         loadShoppingList()
     }
 
+    // Завантаження списку з бази даних
     private fun loadShoppingList() {
         viewModelScope.launch(Dispatchers.IO) {
             val items = dao.getAllItems()
@@ -157,6 +160,7 @@ class ShoppingListViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
+    // Додавання нового елемента
     fun addItem(name: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val newItem = ShoppingItem(name = name)
@@ -165,6 +169,7 @@ class ShoppingListViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
+    // Зміна стану купленого/некупленого
     fun toggleBought(index: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             val item = _shoppingList[index]
@@ -174,6 +179,7 @@ class ShoppingListViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
+    // Видалення елемента
     fun deleteItem(index: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             val item = _shoppingList[index]
@@ -182,6 +188,7 @@ class ShoppingListViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
+    // Оновлення назви елемента
     fun updateItem(index: Int, newName: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val item = _shoppingList[index]
@@ -192,7 +199,7 @@ class ShoppingListViewModel(application: Application) : AndroidViewModel(applica
     }
 }
 
-
+// Компонент картки елемента списку
 @Composable
 fun ShoppingItemCard(
     item: ShoppingItem,
@@ -203,12 +210,14 @@ fun ShoppingItemCard(
     var isEditing by remember { mutableStateOf(false) }
     var editText by remember { mutableStateOf(item.name) }
     
+    // Власне доповнення: Анімація масштабування чекбоксу
     val checkboxScale by animateFloatAsState(
         targetValue = if (item.isBought) 1.2f else 1f,
         animationSpec = tween(durationMillis = 300),
         label = "checkboxScale"
     )
 
+    // Власне доповнення: Картка з тінню та заокругленими кутами
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -222,6 +231,7 @@ fun ShoppingItemCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Власне доповнення: Стилізований чекбокс з анімацією
             Checkbox(
                 checked = item.isBought,
                 onCheckedChange = { onToggleBought() },
@@ -233,6 +243,7 @@ fun ShoppingItemCard(
             )
             
             if (isEditing) {
+                // Власне доповнення: Стилізоване поле редагування
                 OutlinedTextField(
                     value = editText,
                     onValueChange = { editText = it },
@@ -257,6 +268,7 @@ fun ShoppingItemCard(
                     )
                 }
             } else {
+                // Власне доповнення: Стилізований текст з візуальним відображенням стану
                 Text(
                     text = item.name,
                     modifier = Modifier
@@ -269,6 +281,7 @@ fun ShoppingItemCard(
                     else 
                         MaterialTheme.colorScheme.onSurface
                 )
+                // Власне доповнення: Кольорові іконки дій
                 IconButton(
                     onClick = { isEditing = true }
                 ) {
@@ -292,7 +305,7 @@ fun ShoppingItemCard(
     }
 }
 
-
+// Фабрика для створення ViewModel
 class ShoppingListViewModelFactory(private val application: Application) :
     ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -304,10 +317,12 @@ class ShoppingListViewModelFactory(private val application: Application) :
     }
 }
 
+// Компонент форми додавання нового елемента
 @Composable
 fun AddItemButton(addItem: (String) -> Unit = {}) {
     var text by remember { mutableStateOf("") }
 
+    // Власне доповнення: Стилізована картка форми
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -318,6 +333,7 @@ fun AddItemButton(addItem: (String) -> Unit = {}) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
+            // Власне доповнення: Поле вводу з кнопкою очищення
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
@@ -340,6 +356,7 @@ fun AddItemButton(addItem: (String) -> Unit = {}) {
                 }
             )
             Spacer(modifier = Modifier.height(8.dp))
+            // Власне доповнення: Стилізована кнопка з іконкою
             Button(
                 onClick = {
                     if (text.isNotEmpty()) {
@@ -362,33 +379,7 @@ fun AddItemButton(addItem: (String) -> Unit = {}) {
     }
 }
 
-//interface ShoppingApi {
-//    @GET("items")
-//    suspend fun getItems(): List<ShoppingItem>
-//
-//    @POST("items")
-//    suspend fun addItem(@Body item: ShoppingItem)
-//
-//    @PUT("items/{id}")
-//    suspend fun updateItem(@Path("id") id: Int, @Body item: ShoppingItem)
-//
-//    @DELETE("items")
-//    suspend fun clearItems()
-//}
-//
-//object RetrofitInstance {
-//    private const val BASE_URL = "http://10.0.2.2:8080/"
-//
-//    val api: ShoppingApi by lazy {
-//        Retrofit.Builder()
-//            .baseUrl(BASE_URL)
-//            .addConverterFactory(GsonConverterFactory.create())
-//            .build()
-//            .create(ShoppingApi::class.java)
-//    }
-//}
-
-
+// Головний екран додатку
 @Composable
 fun ShoppingListScreen(viewModel: ShoppingListViewModel = viewModel(
     factory = ShoppingListViewModelFactory(LocalContext.current
@@ -400,6 +391,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel = viewModel(
             .padding(16.dp)
             .background(MaterialTheme.colorScheme.background)
     ) {
+        // Власне доповнення: Заголовок екрану
         Text(
             text = "Список покупок",
             style = MaterialTheme.typography.headlineMedium,
@@ -409,6 +401,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel = viewModel(
         
         AddItemButton(addItem = { viewModel.addItem(it) })
         
+        // Власне доповнення: Анімований список елементів
         LazyColumn {
             itemsIndexed(
                 items = viewModel.shoppingList,
@@ -433,14 +426,13 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel = viewModel(
     }
 }
 
+// Прев'ю компонентів для Android Studio
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun ShoppingListScreenPreview() {
     ShoppingListScreen()
 }
 
-
-//@Preview(showBackground = true)
 @Composable
 fun ShoppingItemCardPreview() {
     var toggleState by remember { mutableStateOf(false) }
